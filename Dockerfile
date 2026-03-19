@@ -2,7 +2,7 @@
 FROM node:22-alpine AS frontend-builder
 WORKDIR /build/front
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
 COPY front/package.json front/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
