@@ -15,17 +15,19 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TZ=Asia/Shanghai \
-    UV_SYSTEM_PYTHON=1
+    TZ=Asia/Shanghai
 
 WORKDIR /app
 
-# Install uv (fast Python package installer)
+# Install uv (copy binary directly - fastest method)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install backend dependencies (system-wide, no venv)
+# Install backend dependencies using uv export + pip
+# This is the most reliable approach for Docker
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv pip install --no-cache -r pyproject.toml
+RUN uv export --frozen --no-dev --no-hashes -o requirements.txt \
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm requirements.txt
 
 # Copy backend source
 COPY backend/app ./app
