@@ -5,7 +5,7 @@ WORKDIR /build/front
 RUN corepack enable && corepack prepare pnpm@8 --activate
 
 COPY front/package.json front/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 COPY front/ ./
 RUN pnpm run build
