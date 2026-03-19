@@ -1,11 +1,14 @@
 """FastAPI 应用入口。"""
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router as api_v1_router
 from app.config import settings
@@ -73,9 +76,14 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, http_exception_handler)
 
+# CORS: 生产环境允许同源；开发环境允许 Vite 端口
+cors_origins = settings.cors_origins.copy()
+if os.environ.get("RAILWAY_ENVIRONMENT"):
+    cors_origins.append("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,3 +98,21 @@ async def health():
     """健康检查。"""
     from app.schemas.common import success_response
     return success_response({"status": "ok"})
+
+
+# ── Serve frontend static files (production) ──
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+if _static_dir.is_dir():
+    # Serve static assets (JS, CSS, images, etc.)
+    app.mount("/assets", StaticFiles(directory=_static_dir / "assets"), name="frontend-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        """SPA fallback: serve index.html for all non-API routes."""
+        # Try to serve static file first
+        file_path = _static_dir / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(file_path)
+        # Fallback to index.html for SPA routing
+        return FileResponse(_static_dir / "index.html")
+

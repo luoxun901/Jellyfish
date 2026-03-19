@@ -1,0 +1,13 @@
+.git
+.cursor
+.venv
+__pycache__
+*.pyc
+node_modules
+front/node_modules
+front/dist
+docs
+*.md
+.env
+.env.*
+!.env.example
