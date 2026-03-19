@@ -2,7 +2,6 @@
 FROM node:22-alpine AS frontend-builder
 WORKDIR /build/front
 
-# Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY front/package.json front/pnpm-lock.yaml ./
@@ -16,16 +15,17 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai \
+    UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
-# Install uv
-RUN pip install --no-cache-dir uv
+# Install uv (fast Python package installer)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install backend dependencies
+# Install backend dependencies (system-wide, no venv)
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project --active
+RUN uv pip install --no-cache -r pyproject.toml
 
 # Copy backend source
 COPY backend/app ./app
@@ -39,5 +39,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-# Start: use PORT env from Railway if available, default 8000
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
