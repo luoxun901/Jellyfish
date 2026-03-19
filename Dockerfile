@@ -25,7 +25,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Install backend dependencies using uv export + pip
 # This is the most reliable approach for Docker
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN uv export --frozen --no-dev --no-hashes -o requirements.txt \
+RUN uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt \
     && pip install --no-cache-dir -r requirements.txt \
     && rm requirements.txt
 
